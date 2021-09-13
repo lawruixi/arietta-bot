@@ -55,6 +55,19 @@ class YTDLSource(discord.PCMVolumeTransformer):
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')       
 
+@bot.command(name='introduce', help="Hoi! :D")
+async def introduce(ctx):
+    embed=discord.Embed(title="Hello, I'm Arietta!", description="I'm here to play music for you :OOO \nHave fun and enjoy! :D", color=EMBED_COLOUR)
+    await ctx.send(embed=embed)
+
+@bot.command(pass_context=True)
+async def intro(ctx):
+    await introduce.invoke(ctx);
+
+@bot.command(name='ping', help="pong!")
+async def ping(ctx):
+    await ctx.send("pong!");
+
 @bot.command(name='join', help='Call me if you\'re lonely! :)))))')
 async def join(ctx):
     if not ctx.message.author.voice:
