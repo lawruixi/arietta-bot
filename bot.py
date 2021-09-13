@@ -55,24 +55,24 @@ class YTDLSource(discord.PCMVolumeTransformer):
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')       
 
-@bot.command(name='join', help='Tells the bot to join the voice channel')
+@bot.command(name='join', help='Call me if you\'re lonely! :)))))')
 async def join(ctx):
     if not ctx.message.author.voice:
-        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        await ctx.send("You aren't connected to a voice channel... D:".format(ctx.message.author.name))
         return
     else:
         channel = ctx.message.author.voice.channel
     await channel.connect()
 
-@bot.command(name='leave', help='To make the bot leave the voice channel')
+@bot.command(name='leave', help='Tell me if you want me to go...')
 async def leave(ctx):
     voice_client = ctx.message.guild.voice_client
     if (not voice_client is None) and (voice_client.is_connected()):
         await voice_client.disconnect()
     else:
-        await ctx.send("The bot is not connected to a voice channel.")
+        await ctx.send("I'm not in a voice channel... D:")
 
-@bot.command(name='play', help='To play song')
+@bot.command(name='play', help='Let me play some songs for you! :OOO')
 async def play(ctx,*url):
     url = " ".join(url) #Allows for searching of more than one word at a time.
     voice_client = ctx.message.guild.voice_client
@@ -81,7 +81,7 @@ async def play(ctx,*url):
             await ctx.invoke(bot.get_command('join'))
         except Exception as e: 
             print(e)
-            await ctx.send("An error has occurred. Please try again later.")
+            await ctx.send("I'm sorry! Something bad happened! ;-;")
             return;
 
     try:
@@ -96,32 +96,33 @@ async def play(ctx,*url):
         await ctx.send('**Now playing:** {}'.format(filename)) 
     except Exception as e:
         print(e)
-        await ctx.send("The bot is not connected to a voice channel.")
+        await ctx.send("I'm not in a voice channel... D:")
 
 
-@bot.command(name='pause', help='This command pauses the song')
+@bot.command(name='pause', help='Pauses the song!')
 async def pause(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_playing():
         await voice_client.pause()
     else:
-        await ctx.send("The bot is not playing anything at the moment.")
+        await ctx.send("I'm not playing anything right now...")
+
     
-@bot.command(name='resume', help='Resumes the song')
+@bot.command(name='resume', help='Resumes the song!')
 async def resume(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_paused():
         await voice_client.resume()
     else:
-        await ctx.send("The bot was not playing anything before this. Use play_song command")
+        await ctx.send("I'm not playing anything. Try using `!play`! :D")
 
-@bot.command(name='stop', help='Stops the song')
+@bot.command(name='stop', help='Stops the song!')
 async def stop(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_playing():
         await voice_client.stop()
     else:
-        await ctx.send("The bot is not playing anything at the moment.")
+        await ctx.send("I'm not playing anything right now...")
 
 
 #https://stackoverflow.com/questions/63658589/how-to-make-a-discord-bot-leave-the-voice-channel-after-being-inactive-for-x-min
@@ -135,7 +136,6 @@ async def on_voice_state_update(member, before, after):
         voice = after.channel.guild.voice_client
         time = 0
         while True:
-            await asyncio.sleep(1)
             time = time + 1
             if voice.is_playing() and not voice.is_paused():
                 time = 0
