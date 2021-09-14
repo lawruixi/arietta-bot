@@ -63,6 +63,13 @@ async def on_ready():
 
 EMBED_COLOUR = 0xF875A2
 current_song = "";
+current_time = 0
+
+@bot.event
+async def on_message(message):
+    if bot.user.mentioned_in(message):
+        if("goodnight" in message.content.lower()):
+            await message.channel.send("goodnight!")
 
 @bot.command(name='introduce', help="Hoi! :D")
 async def introduce(ctx):
@@ -121,6 +128,8 @@ async def play(ctx,*url):
         filename = await YTDLSource.from_url(url, loop=bot.loop)
         voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: removeFile(filename))
         await ctx.send('**Now playing:** {}'.format(current_song)) 
+
+        #TODO: Add time to current_time for np progressbar?
     except Exception as e:
         print(e)
         await ctx.send("I'm sorry! Something bad happened! ;-;")
@@ -131,6 +140,7 @@ async def p(ctx):
 
 @bot.command(name='now_playing', help='What\'s playing now? :O')
 async def now_playing(ctx):
+        #TODO: Progressbar?
         await ctx.send('**Now playing:** {}'.format(current_song)) 
         # embed=discord.Embed(title="Added Homework!", description="Successfully added homework **{name}** due on **{duedate}**, with index **{list_number}**!".format(name=name, duedate=duedate, list_number=list_number), color=EMBED_COLOUR)
         # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
@@ -177,6 +187,7 @@ async def on_voice_state_update(member, before, after):
         voice = after.channel.guild.voice_client
         time = 0
         while True:
+            await asyncio.sleep(1) #TODO: Test out again
             time = time + 1
             if voice.is_playing() and not voice.is_paused():
                 time = 0
