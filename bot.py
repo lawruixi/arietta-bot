@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 import youtube_dl
 import asyncio
 
+#TODO: Now playing progress bar?
+#TODO: seek to timestamp? https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
+
 load_dotenv()
 
 DISCORD_TOKEN = os.getenv("discord_token")
@@ -48,6 +51,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if 'entries' in data:
             # take first item from a playlist
             data = data['entries'][0]
+        print(data)
+        global current_song
+        current_song = data['title']
         filename = data['title'] if stream else ytdl.prepare_filename(data)
         return filename
 
@@ -56,6 +62,7 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')       
 
 EMBED_COLOUR = 0xF875A2
+current_song = "";
 
 @bot.command(name='introduce', help="Hoi! :D")
 async def introduce(ctx):
@@ -110,13 +117,28 @@ async def play(ctx,*url):
         def removeFile(filename):
             os.remove(filename)
 
+        global current_song
         filename = await YTDLSource.from_url(url, loop=bot.loop)
         voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: removeFile(filename))
-        await ctx.send('**Now playing:** {}'.format(filename)) 
+        await ctx.send('**Now playing:** {}'.format(current_song)) 
     except Exception as e:
         print(e)
-        await ctx.send("I'm not in a voice channel... D:")
+        await ctx.send("I'm sorry! Something bad happened! ;-;")
 
+@bot.command(pass_context=True)
+async def p(ctx):
+    await play.invoke(ctx);
+
+@bot.command(name='now_playing', help='What\'s playing now? :O')
+async def now_playing(ctx):
+        await ctx.send('**Now playing:** {}'.format(current_song)) 
+        # embed=discord.Embed(title="Added Homework!", description="Successfully added homework **{name}** due on **{duedate}**, with index **{list_number}**!".format(name=name, duedate=duedate, list_number=list_number), color=EMBED_COLOUR)
+        # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
+        await ctx.send(embed=embed);
+
+@bot.command(pass_context=True)
+async def np(ctx):
+    await now_playing.invoke(ctx);
 
 @bot.command(name='pause', help='Pauses the song!')
 async def pause(ctx):
