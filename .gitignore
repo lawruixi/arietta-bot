@@ -1,2 +1,5 @@
 .env
 token.py
+*.mp4
+*.m4a
+*.webm

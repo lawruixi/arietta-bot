@@ -1,9 +1,12 @@
+#!/usr/bin/python3
 import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import youtube_dl
 import asyncio
+import time
+import datetime
 
 #TODO: Now playing progress bar?
 #TODO: seek to timestamp? https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
@@ -51,22 +54,26 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if 'entries' in data:
             # take first item from a playlist
             data = data['entries'][0]
-        print(data)
         global current_song
         current_song = data['title']
         filename = data['title'] if stream else ytdl.prepare_filename(data)
-        return filename
+        duration = data['duration']
+        return (filename, duration)
 
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')       
 
 EMBED_COLOUR = 0xF875A2
-current_song = "";
-current_time = 0
+current_song = None;
+current_progress = 0
+start_time = 0
+duration = 0;
 
 @bot.event
 async def on_message(message):
+    await bot.process_commands(message);
+
     if bot.user.mentioned_in(message):
         if("goodnight" in message.content.lower()):
             await message.channel.send("goodnight!")
@@ -101,6 +108,7 @@ async def join(ctx):
 async def leave(ctx):
     voice_client = ctx.message.guild.voice_client
     if (not voice_client is None) and (voice_client.is_connected()):
+        global current_song; current_song = None;
         await voice_client.disconnect()
     else:
         await ctx.send("I'm not in a voice channel... D:")
@@ -121,15 +129,19 @@ async def play(ctx,*url):
         server = ctx.message.guild
         voice_channel = server.voice_client
 
-        def removeFile(filename):
+        def finishPlaying(filename):
             os.remove(filename)
+            global current_song; current_song = None;
 
-        global current_song
-        filename = await YTDLSource.from_url(url, loop=bot.loop)
-        voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: removeFile(filename))
+        global current_song, duration, start_time
+        (filename, duration) = await YTDLSource.from_url(url, loop=bot.loop)
+        voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: finishPlaying(filename))
+
+        #Reset play start time
+        current_progress = 0
+        start_time = time.time();
+
         await ctx.send('**Now playing:** {}'.format(current_song)) 
-
-        #TODO: Add time to current_time for np progressbar?
     except Exception as e:
         print(e)
         await ctx.send("I'm sorry! Something bad happened! ;-;")
@@ -140,11 +152,39 @@ async def p(ctx):
 
 @bot.command(name='now_playing', help='What\'s playing now? :O')
 async def now_playing(ctx):
-        #TODO: Progressbar?
-        await ctx.send('**Now playing:** {}'.format(current_song)) 
-        # embed=discord.Embed(title="Added Homework!", description="Successfully added homework **{name}** due on **{duedate}**, with index **{list_number}**!".format(name=name, duedate=duedate, list_number=list_number), color=EMBED_COLOUR)
-        # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
-        await ctx.send(embed=embed);
+    if(current_song == None):
+        await ctx.send("I'm not playing anything right now...")
+        return;
+    progress = 0;
+    
+    #Get progress; if paused, it should just be the current progress. Otherwise, add the unpaused time as well.
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_paused():
+        progress = int(current_progress);
+    else:
+        progress = int(time.time() - start_time + current_progress);
+    play_frac = progress/duration;
+    progressbar_string = ""
+    #Formatting and stuff
+    if(play_frac <= 0.5):
+        progressbar_string += "=" * (int(play_frac * 20))
+        progressbar_string += "O"
+        progressbar_string += "-" * (20 - int(play_frac * 20))
+    else:
+        progressbar_string += "=" * (1 + int(play_frac * 20));
+        progressbar_string += "O"
+        progressbar_string += "-" * (20 - (1 + int(play_frac * 20)))
+
+    duration_hms = str(datetime.timedelta(seconds=duration));
+    progress_hms = str(datetime.timedelta(seconds=progress));
+
+    title = "**Now Playing:**"
+    description = "{0}\n```\n{1}\n{2}/{3}```".format(current_song, progressbar_string, progress_hms, duration_hms)
+
+    # await ctx.send('**Now playing:** {}'.format(current_song)) 
+    embed=discord.Embed(title=title, description=description, color=EMBED_COLOUR)
+    # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
+    await ctx.send(embed=embed);
 
 @bot.command(pass_context=True)
 async def np(ctx):
@@ -154,6 +194,8 @@ async def np(ctx):
 async def pause(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_playing():
+        global current_progress
+        current_progress = time.time() - start_time;
         await voice_client.pause()
     else:
         await ctx.send("I'm not playing anything right now...")
@@ -163,6 +205,8 @@ async def pause(ctx):
 async def resume(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_paused():
+        global start_time
+        start_time = time.time();
         await voice_client.resume()
     else:
         await ctx.send("I'm not playing anything. Try using `!play`! :D")
@@ -192,6 +236,7 @@ async def on_voice_state_update(member, before, after):
             if voice.is_playing() and not voice.is_paused():
                 time = 0
             if time == 60:
+                global current_song; current_song = None;
                 await voice.disconnect()
             if not voice.is_connected():
                 break
