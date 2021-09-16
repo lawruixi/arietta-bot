@@ -7,8 +7,9 @@ import youtube_dl
 import asyncio
 import time
 import datetime
+from queue import Queue
 
-#TODO: Now playing progress bar?
+#TODO: QUEUE
 #TODO: seek to timestamp? https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
 
 load_dotenv()
@@ -48,6 +49,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = ""
 
     @classmethod
+    async def get_data(cls, url, *, loop=None):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
+        return data;
+
+    @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
@@ -69,6 +76,7 @@ current_song = None;
 current_progress = 0
 start_time = 0
 duration = 0;
+play_queue = Queue() #DOES NOT include current song.
 
 @bot.event
 async def on_message(message):
@@ -120,14 +128,41 @@ async def play(ctx,*url):
     if(voice_client is None): #Join if not connected to voice channel.
         try:
             await ctx.invoke(bot.get_command('join'))
+            voice_client = ctx.message.guild.voice_client
         except Exception as e: 
             print(e)
             await ctx.send("I'm sorry! Something bad happened! ;-;")
             return;
 
+    if voice_client.is_playing(): #If there is currently a song being played:
+        data = await YTDLSource.get_data(url, loop=bot.loop); #Get data about the song being added
+        # print(data.get('_type', "video")); //TODO: Check if playlist
+        print(data['title'])
+        print(data['duration'])
+
+        play_queue.put(url)
+
+        title = "Added song to queue! :D"
+        duration_hms = str(datetime.timedelta(seconds=data['duration']));
+
+        embed=discord.Embed(title=title, color=EMBED_COLOUR)
+        embed.add_field(name="Position", value="{0}".format(play_queue.qsize() + 1), inline = True);
+        embed.add_field(name="Name", value="{0}".format(data['title']), inline = True);
+        embed.add_field(name="Duration", value="{0}".format(duration_hms), inline = True);
+        await ctx.send(embed=embed)
+        return;
+
     try:
         server = ctx.message.guild
         voice_channel = server.voice_client
+
+        # async def finishPlaying(filename):
+            # os.remove(filename)
+            # global current_song; current_song = None;
+
+            # if(not play_queue.empty()):
+                # next_url = play_queue.get();
+                # await ctx.invoke(bot.get_command('play'), query=next_url)
 
         def finishPlaying(filename):
             os.remove(filename)
@@ -135,6 +170,7 @@ async def play(ctx,*url):
 
         global current_song, duration, start_time
         (filename, duration) = await YTDLSource.from_url(url, loop=bot.loop)
+        # voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: finishPlaying(filename))
         voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: finishPlaying(filename))
 
         #Reset play start time
@@ -167,13 +203,13 @@ async def now_playing(ctx):
     progressbar_string = ""
     #Formatting and stuff
     if(play_frac <= 0.5):
-        progressbar_string += "=" * (int(play_frac * 20))
+        progressbar_string += "=" * (int(play_frac * 40))
         progressbar_string += "O"
-        progressbar_string += "-" * (20 - int(play_frac * 20))
+        progressbar_string += "-" * (40 - int(play_frac * 40))
     else:
-        progressbar_string += "=" * (1 + int(play_frac * 20));
+        progressbar_string += "=" * (1 + int(play_frac * 40));
         progressbar_string += "O"
-        progressbar_string += "-" * (20 - (1 + int(play_frac * 20)))
+        progressbar_string += "-" * (40 - (1 + int(play_frac * 40)))
 
     duration_hms = str(datetime.timedelta(seconds=duration));
     progress_hms = str(datetime.timedelta(seconds=progress));
