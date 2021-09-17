@@ -62,10 +62,15 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # take first item from a playlist
             data = data['entries'][0]
         global current_song
-        current_song = data['title']
-        filename = data['title'] if stream else ytdl.prepare_filename(data)
-        duration = data['duration']
-        return (filename, duration)
+        current_song = Song(data['title'], url, data['duration'])
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        return filename
+
+class Song():
+    def __init__(self, title, url, duration):
+        self.title = title;
+        self.url = url;
+        self.duration = duration;
 
 @bot.event
 async def on_ready():
@@ -75,8 +80,7 @@ EMBED_COLOUR = 0xF875A2
 current_song = None;
 current_progress = 0
 start_time = 0
-duration = 0;
-play_queue = Queue() #DOES NOT include current song.
+play_queues = dict(); #A dictionary of server_id : Queue. Each queue does not include the currently playing song.
 
 @bot.event
 async def on_message(message):
@@ -121,6 +125,37 @@ async def leave(ctx):
     else:
         await ctx.send("I'm not in a voice channel... D:")
 
+async def play_song(ctx, channel):
+    async with ctx.typing():
+        server_id = channel.guild.id;
+        song = play_queues[server_id].get();
+        if(song == None): return;
+
+        player = await YTDLSource.from_url(song.url, loop=client.loop, stream=True)
+        def after_song(e):
+            if(play_queues[server_id].qsize() == 0):
+                current_song = None;
+            return play_song(ctx, channel)
+
+        channel.play(
+                # discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=player),
+                discord.FFmpegPCMAudio(player),
+                after = lambda e: after_song
+                )
+
+        current_progress = 0
+        start_time = time.time();
+
+        current_song = song;
+        await ctx.send('**Now playing:** {}'.format(current_song.title)) 
+
+
+def add_to_queue(server_id, song):
+    if(play_queues.get(server_id, None) is None):
+        play_queues[server_id] = Queue();
+    play_queues[server_id].put(song)
+
+
 @bot.command(name='play', help='Let me play some songs for you! :OOO')
 async def play(ctx,*url):
     url = " ".join(url) #Allows for searching of more than one word at a time.
@@ -134,50 +169,40 @@ async def play(ctx,*url):
             await ctx.send("I'm sorry! Something bad happened! ;-;")
             return;
 
-    if voice_client.is_playing(): #If there is currently a song being played:
-        data = await YTDLSource.get_data(url, loop=bot.loop); #Get data about the song being added
+    server_id = ctx.guild.id;
+    data = await YTDLSource.get_data(url, loop=bot.loop); #Get data about the song being added
+    if not current_song is None: #If there is currently a song being played:
         # print(data.get('_type', "video")); //TODO: Check if playlist
-        print(data['title'])
-        print(data['duration'])
 
-        play_queue.put(url)
+        title = data['title']
+        duration = data['duration']
+
+        add_to_queue(server_id, Song(title, url, duration))
 
         title = "Added song to queue! :D"
-        duration_hms = str(datetime.timedelta(seconds=data['duration']));
+        duration_hms = str(datetime.timedelta(seconds=duration));
 
         embed=discord.Embed(title=title, color=EMBED_COLOUR)
-        embed.add_field(name="Position", value="{0}".format(play_queue.qsize() + 1), inline = True);
-        embed.add_field(name="Name", value="{0}".format(data['title']), inline = True);
+        embed.add_field(name="Position", value="{0}".format(play_queues[server_id].qsize()), inline = True);
+        embed.add_field(name="Name", value="{0}".format(title), inline = True);
         embed.add_field(name="Duration", value="{0}".format(duration_hms), inline = True);
         await ctx.send(embed=embed)
         return;
 
     try:
+        #TODO: playlist?
         server = ctx.message.guild
         voice_channel = server.voice_client
 
-        # async def finishPlaying(filename):
-            # os.remove(filename)
-            # global current_song; current_song = None;
+        data = await YTDLSource.get_data(url, loop=bot.loop); #Get data about the song being added
+        print("EEE")
+        print(data)
+        title = data['title']
+        duration = data['duration']
+        add_to_queue(server_id, Song(title, url, duration))
 
-            # if(not play_queue.empty()):
-                # next_url = play_queue.get();
-                # await ctx.invoke(bot.get_command('play'), query=next_url)
+        await play_song(ctx, voice_channel)
 
-        def finishPlaying(filename):
-            os.remove(filename)
-            global current_song; current_song = None;
-
-        global current_song, duration, start_time
-        (filename, duration) = await YTDLSource.from_url(url, loop=bot.loop)
-        # voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: finishPlaying(filename))
-        voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=filename), after=lambda e: finishPlaying(filename))
-
-        #Reset play start time
-        current_progress = 0
-        start_time = time.time();
-
-        await ctx.send('**Now playing:** {}'.format(current_song)) 
     except Exception as e:
         print(e)
         await ctx.send("I'm sorry! Something bad happened! ;-;")
@@ -186,12 +211,17 @@ async def play(ctx,*url):
 async def p(ctx):
     await play.invoke(ctx);
 
+@bot.command(pass_context=True)
+async def np(ctx):
+    await ctx.invoke(bot.get_command('now_playing'))
+
 @bot.command(name='now_playing', help='What\'s playing now? :O')
 async def now_playing(ctx):
-    if(current_song == None):
+    if(current_song is None):
         await ctx.send("I'm not playing anything right now...")
         return;
     progress = 0;
+    duration = current_song.duration
     
     #Get progress; if paused, it should just be the current progress. Otherwise, add the unpaused time as well.
     voice_client = ctx.message.guild.voice_client
@@ -215,16 +245,12 @@ async def now_playing(ctx):
     progress_hms = str(datetime.timedelta(seconds=progress));
 
     title = "**Now Playing:**"
-    description = "{0}\n```\n{1}\n{2}/{3}```".format(current_song, progressbar_string, progress_hms, duration_hms)
+    description = "{0}\n```\n{1}\n{2}/{3}```".format(current_song.title, progressbar_string, progress_hms, duration_hms)
 
     # await ctx.send('**Now playing:** {}'.format(current_song)) 
     embed=discord.Embed(title=title, description=description, color=EMBED_COLOUR)
     # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
     await ctx.send(embed=embed);
-
-@bot.command(pass_context=True)
-async def np(ctx):
-    await now_playing.invoke(ctx);
 
 @bot.command(name='pause', help='Pauses the song!')
 async def pause(ctx):
