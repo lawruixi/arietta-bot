@@ -129,20 +129,27 @@ async def play_song(ctx, channel):
     async with ctx.typing():
         server_id = channel.guild.id;
         song = play_queues[server_id].get();
+        print(play_queues[server_id].qsize())
         if(song == None): return;
+        print(song.title)
+        print(song.url)
+        print(song.duration)
 
-        player = await YTDLSource.from_url(song.url, loop=client.loop, stream=True)
-        def after_song(e):
+        player = await YTDLSource.from_url(song.url, loop=client.loop)
+        async def after_song(e):
+            os.remove(player)
+            print("AAAAAA")
             if(play_queues[server_id].qsize() == 0):
                 current_song = None;
-            return play_song(ctx, channel)
+            print("AAAAAA")
+            await play_song(ctx, channel)
 
         channel.play(
-                # discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=player),
-                discord.FFmpegPCMAudio(player),
-                after = lambda e: after_song
+                discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=player),
+                after = after_song
                 )
 
+        global start_time, current_progress, current_song;
         current_progress = 0
         start_time = time.time();
 
@@ -156,8 +163,9 @@ def add_to_queue(server_id, song):
     play_queues[server_id].put(song)
 
 
-@bot.command(name='play', help='Let me play some songs for you! :OOO')
+@bot.command(name='play', help='Let me play some songs for you! :OOO') 
 async def play(ctx,*url):
+    #TODO: Adding to queue even before playing the first song?
     url = " ".join(url) #Allows for searching of more than one word at a time.
     voice_client = ctx.message.guild.voice_client
     if(voice_client is None): #Join if not connected to voice channel.
@@ -174,17 +182,17 @@ async def play(ctx,*url):
     if not current_song is None: #If there is currently a song being played:
         # print(data.get('_type', "video")); //TODO: Check if playlist
 
-        title = data['title']
+        video_title = data['title']
         duration = data['duration']
 
-        add_to_queue(server_id, Song(title, url, duration))
+        add_to_queue(server_id, Song(video_title, url, duration))
 
         title = "Added song to queue! :D"
         duration_hms = str(datetime.timedelta(seconds=duration));
 
         embed=discord.Embed(title=title, color=EMBED_COLOUR)
         embed.add_field(name="Position", value="{0}".format(play_queues[server_id].qsize()), inline = True);
-        embed.add_field(name="Name", value="{0}".format(title), inline = True);
+        embed.add_field(name="Name", value="{0}".format(video_title), inline = True);
         embed.add_field(name="Duration", value="{0}".format(duration_hms), inline = True);
         await ctx.send(embed=embed)
         return;
@@ -195,8 +203,6 @@ async def play(ctx,*url):
         voice_channel = server.voice_client
 
         data = await YTDLSource.get_data(url, loop=bot.loop); #Get data about the song being added
-        print("EEE")
-        print(data)
         title = data['title']
         duration = data['duration']
         add_to_queue(server_id, Song(title, url, duration))
@@ -247,9 +253,7 @@ async def now_playing(ctx):
     title = "**Now Playing:**"
     description = "{0}\n```\n{1}\n{2}/{3}```".format(current_song.title, progressbar_string, progress_hms, duration_hms)
 
-    # await ctx.send('**Now playing:** {}'.format(current_song)) 
     embed=discord.Embed(title=title, description=description, color=EMBED_COLOUR)
-    # embed = discord.Embed(title="**Now Playing:**", description="{0}\n{1}/{2}")
     await ctx.send(embed=embed);
 
 @bot.command(name='pause', help='Pauses the song!')
