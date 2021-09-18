@@ -376,9 +376,6 @@ class Music(commands.Cog):
         progress_hms = str(datetime.timedelta(seconds=progress));
         duration_hms = str(datetime.timedelta(seconds=duration));
 
-        title = "**Now Playing:**"
-        description = "{0}\n```\n{1}\n{2}/{3}```".format(current_song.title, progressbar_string, progress_hms, duration_hms)
-
         embed = (discord.Embed(title='Now Playing:',
                                description='```css\n{0.source.title}\n{1}\n{2}/{3}```'.format(self, progressbar_string, progress_hms, duration_hms),
                                color=EMBED_COLOUR)
