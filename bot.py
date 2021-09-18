@@ -377,13 +377,12 @@ class Music(commands.Cog):
         duration_hms = str(datetime.timedelta(seconds=duration));
 
         embed = (discord.Embed(title='Now Playing:',
-                               description='```css\n{0.voice_state.current.source.title}\n{1}\n{2}/{3}```'.format(self, progressbar_string, progress_hms, duration_hms),
+                               description='```css\n{0.title}\n{1}\n{2}/{3}```'.format(ctx.voice_state.current.source, progressbar_string, progress_hms, duration_hms),
                                color=EMBED_COLOUR)
-                 .add_field(name='Requested by', value=self.requester.mention)
-                 .add_field(name='Uploader', value='[{0.voice_state.current.source.uploader}]({0.voice_state.current.source.uploader_url})'.format(self))
-                 .set_thumbnail(url=self.source.thumbnail))
+                 .add_field(name='Requested by', value=ctx.voice_state.current.requester.mention)
+                 .add_field(name='Uploader', value='[{0.uploader}]({0.uploader_url})'.format(ctx.voice_state.current.source))
+                 .set_thumbnail(url=ctx.voice_state.current.source.thumbnail))
 
-        embed=discord.Embed(title=title, description=description, color=EMBED_COLOUR)
         await ctx.send(embed=embed);
 
         # await ctx.send(embed=ctx.voice_state.current.create_embed())
@@ -509,6 +508,7 @@ class Music(commands.Cog):
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
+                ctx.voice_state.start_time = time.time();
 
                 if len(ctx.voice_state.songs) > 1 or not ctx.voice_state.current is None: #Not the only song playing
                     title = "Added song to queue! :D"
