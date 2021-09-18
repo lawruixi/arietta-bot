@@ -357,9 +357,9 @@ class Music(commands.Cog):
         
         #Get progress; if paused, it should just be the current progress. Otherwise, add the unpaused time as well.
         if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
-            progress = int(self.current_progress);
+            progress = int(ctx.voice_state.current_progress);
         else:
-            progress = int(time.time() - self.start_time + self.current_progress);
+            progress = int(time.time() - ctx.voice_state.start_time + ctx.voice_state.current_progress);
 
         play_frac = max(min(progress/duration, 1), 0); #Ensure between 1 and 0.
         progressbar_string = ""
