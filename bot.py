@@ -252,6 +252,8 @@ class VoiceState:
                     self.bot.loop.create_task(self.stop())
                     return
 
+
+            self.start_time = time.time();
             self.current.source.volume = self._volume
             self.voice.play(self.current.source, after=self.play_next_song)
             await self.current.source.channel.send(embed=self.current.create_embed())
@@ -516,7 +518,6 @@ class Music(commands.Cog):
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
-                ctx.voice_state.start_time = time.time();
 
                 if len(ctx.voice_state.songs) > 1 or not ctx.voice_state.current is None: #Not the only song playing
                     title = "Added song to queue! :D"
