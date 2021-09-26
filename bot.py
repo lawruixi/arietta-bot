@@ -385,8 +385,8 @@ class Music(commands.Cog):
             progressbar_string += "O"
             progressbar_string += "-" * (40 - (1 + int(play_frac * 40)))
 
-        progress_hms = str(datetime.timedelta(seconds=progress));
-        duration_hms = str(datetime.timedelta(seconds=duration));
+        progress_hms = YTDLSource.parse_duration(progress)
+        duration_hms = YTDLSource.parse_duration(duration)
 
         embed = (discord.Embed(title='Now Playing:',
                                description='```css\n{0.title}\n{1}\n{2}/{3}```'.format(ctx.voice_state.current.source, progressbar_string, progress_hms, duration_hms),
@@ -574,6 +574,8 @@ async def on_message(message):
     if bot.user.mentioned_in(message):
         if("goodnight" in message.content.lower()):
             await message.channel.send("goodnight!")
+        if("<3" in message.content.lower()):
+            await message.channel.send("<3")
 
 @bot.command(name='introduce', help="Hoi! :D")
 async def introduce(ctx):
