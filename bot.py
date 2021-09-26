@@ -25,8 +25,18 @@ client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='^',intents=intents)
 
 EMBED_COLOUR = 0xF875A2
+ERROR_DIRECTORY = "errors/"
+ERROR_FILE = "error.txt"
 
 youtube_dl.utils.bug_reports_message = lambda: ''
+
+def get_error_file(error):
+    if not os.path.exists(ERROR_DIRECTORY):
+        os.mkdir(ERROR_DIRECTORY);
+    error_file = open(ERROR_DIRECTORY + ERROR_FILE, "w");
+    error_file.write(str(error));
+    error_file.close();
+    return discord.File(ERROR_DIRECTORY + ERROR_FILE);
 
 class VoiceError(Exception):
     pass
@@ -131,20 +141,18 @@ class YTDLSource(discord.PCMVolumeTransformer):
         hours, minutes = divmod(minutes, 60)
         days, hours = divmod(hours, 24)
 
-        duration = []
+        duration_list = []
         if days > 0:
-            duration.append('{}:'.format(days))
+            duration_list.append('{}:'.format(days))
         if hours > 0:
-            duration.append('{:02d}:'.format(hours))
-        if minutes > 0:
-            duration.append('{:02d}:'.format(minutes))
-        if seconds > 0:
-            duration.append('{:02d}:'.format(seconds))
+            duration_list.append('{:02d}:'.format(hours))
+        duration_list.append('{:02d}:'.format(minutes))
+        duration_list.append('{:02d}:'.format(seconds))
 
-        if len(duration) == 1:
-            duration.insert(0, "00:")
+        if len(duration_list) == 1:
+            duration_list.insert(0, "00:")
 
-        return ''.join(duration).strip(":")
+        return ''.join(duration_list).strip(":")
 
 class Song:
     __slots__ = ('source', 'requester')
@@ -251,6 +259,7 @@ class VoiceState:
             await self.next.wait()
 
     def play_next_song(self, error=None):
+        self.current = None;
         if error:
             raise VoiceError(str(error))
 
@@ -295,7 +304,8 @@ class Music(commands.Cog):
 
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
         print(str(error))
-        await ctx.send("I'm sorry! An error occurred! ;-;")
+        error_file = get_error_file(error)
+        await ctx.send("I'm sorry! An error occurred! ;-;", file=error_file)
 
     @commands.command(name='join', invoke_without_subcommand=True, help='Call me if you\'re lonely! :)))))')
     async def _join(self, ctx: commands.Context):
@@ -309,7 +319,6 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name='summon')
-    @commands.has_permissions(manage_guild=True)
     async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
@@ -326,7 +335,6 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name='leave', aliases=['disconnect'], help='Tell me if you want me to go...')
-    @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
 
@@ -341,7 +349,7 @@ class Music(commands.Cog):
         """Sets the volume of the player."""
 
         if not ctx.voice_state.is_playing:
-            return await ctx.send("I'm playing nothing right now...")
+            return await ctx.send("I'm not playing anything right now...")
 
         if 0 > volume > 100:
             return await ctx.send('Please enter between 0 and 100!')
@@ -352,6 +360,8 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing', 'np'], help='What\'s playing now? :O')
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
+        if(ctx.voice_state.current is None):
+            return await ctx.send("I'm not playing anything right now...")
         progress = 0
         duration = ctx.voice_state.current.source.duration 
         
@@ -388,7 +398,6 @@ class Music(commands.Cog):
         # await ctx.send(embed=ctx.voice_state.current.create_embed())
 
     @commands.command(name='pause', help='Pauses the song!')
-    @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
@@ -399,7 +408,6 @@ class Music(commands.Cog):
             await ctx.message.add_reaction('✅')
 
     @commands.command(name='resume', help="Resumes the song!")
-    @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
@@ -410,7 +418,6 @@ class Music(commands.Cog):
             await ctx.message.add_reaction('✅')
 
     @commands.command(name='stop', help="Stops all songs!")
-    @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
 
@@ -430,7 +437,7 @@ class Music(commands.Cog):
             return await ctx.send("I'm not playing any music right now...")
         ctx.voice_state.skip()
 
-    @commands.command(name='queue', aliases=['q'])
+    @commands.command(name='queue', aliases=['q'], help="Displays the queue! :O")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
@@ -503,7 +510,8 @@ class Music(commands.Cog):
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as error:
                 print(str(error))
-                await ctx.send("I'm sorry! An error occurred! ;-;")
+                error_file = get_error_file(error)
+                await ctx.send("I'm sorry! An error occurred! ;-;", file=error_file)
             else:
                 song = Song(source)
 
