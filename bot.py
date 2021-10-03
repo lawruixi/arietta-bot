@@ -96,6 +96,14 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
+    async def get_info(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+        loop = loop or asyncio.get_event_loop()
+
+        partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
+        data = await loop.run_in_executor(None, partial)
+        return data;
+
+    @classmethod
     async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
@@ -273,13 +281,9 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        print("AAA")
         self.songs.clear()
-        print("BBB")
 
-        print("CCC")
         if self.voice:
-            print("DDD")
             await self.voice.disconnect()
             self.voice = None
 
@@ -459,12 +463,24 @@ class Music(commands.Cog):
         start = (page - 1) * items_per_page
         end = start + items_per_page
 
-        queue = ''
+        indices = '';
+        titles = '';
+        durations = '';
         for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
-            queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
+            # queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
+            indices += "{0}\n".format(i);
+            #TODO: Fix formatting hotfix for long titles?
+            truncated_title = "{0.source.title}".format(song)[:50]
+            if(len(truncated_title) < len(song.source.title)): truncated_title += "..."
 
-        embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs), queue))
-                 .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            titles += "[**{0}**]({1.source.url})\n".format(truncated_title, song)
+            durations += "{0}\n".format(song.source.duration_hms);
+
+        embed = discord.Embed(title="Queue:", description = "{0} tracks in queue!".format(len(ctx.voice_state.songs)), color=EMBED_COLOUR);
+        embed.add_field(name="Index", value = indices, inline=True)
+        embed.add_field(name="Name", value = titles, inline=True)
+        embed.add_field(name="Duration", value = durations, inline=True)
+        embed.set_footer(text="Viewing page {}/{}".format(page, pages))
         await ctx.send(embed=embed)
 
     @commands.command(name='shuffle')
@@ -514,6 +530,32 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
+                data = await YTDLSource.get_info(ctx, search, loop = self.bot.loop)
+                is_playlist = False
+                if('entries' in data):
+                    is_playlist = True
+                    #Playlist
+                    enqueued = 0;
+                    total_time = 0;
+                    for entry in data['entries']:
+                        if entry:
+                            url = "www.youtube.com/watch?v=" + entry['url']
+                            total_time += entry['duration'];
+                            #TODO: New thread instead of blocking main thread?
+                            source = await YTDLSource.create_source(ctx, url, loop = self.bot.loop);
+                            song = Song(source)
+                            await ctx.voice_state.songs.put(song)
+                            enqueued += 1;
+
+                    #TODO: Thumbnail of first song?
+                    embed = discord.Embed(title = "Added playlist to queue! :D", description="```{0}```".format(data['title']), color = EMBED_COLOUR)
+                    embed.add_field(name="Songs", value="{0}".format(enqueued), inline=True);
+                    embed.add_field(name="Duration", value="{0}".format(YTDLSource.parse_duration(int(total_time))))
+                    embed.add_field(name="Requester", value="{0}".format(ctx.author.mention))
+                    await ctx.send(embed=embed) 
+                    return;
+
+                #play first song from playlist, or search otherwise.
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as error:
                 print(str(error))
@@ -624,15 +666,11 @@ async def changelog(ctx):
 #TODO: Not show up in help
 @bot.command(name='debug')
 async def debug(ctx, password, *args):
-    print(ctx.message.author.id);
     if ctx.message.author.id != 498808695170269184:
         return
 
     PASSWORD_HASH = os.getenv("dev_password")
     password_hash = hashlib.sha256(password.encode())
-    print(password_hash.hexdigest())
-    print(PASSWORD_HASH)
-    print(password_hash.hexdigest() == PASSWORD_HASH)
     if(password_hash.hexdigest() != PASSWORD_HASH):
         return;
 
