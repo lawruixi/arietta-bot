@@ -12,6 +12,7 @@ import itertools
 import math
 from queue import Queue
 from async_timeout import timeout
+import hashlib
 
 #TODO: QUEUE
 #TODO: seek to timestamp? https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
@@ -593,6 +594,26 @@ async def ping(ctx):
 @bot.command(name='pong', help="ping!")
 async def ping(ctx):
     await ctx.send("ping!");
+
+#TODO: Not show up in help
+@bot.command(name='debug')
+async def debug(ctx, password, *args):
+    print(ctx.message.author.id);
+    if ctx.message.author.id != 498808695170269184:
+        return
+
+    PASSWORD_HASH = os.getenv("dev_password")
+    password_hash = hashlib.sha256(password.encode())
+    print(password_hash.hexdigest())
+    print(PASSWORD_HASH)
+    print(password_hash.hexdigest() == PASSWORD_HASH)
+    if(password_hash.hexdigest() != PASSWORD_HASH):
+        return;
+
+    expr = ' '.join(args);
+    string = eval(expr)
+    await ctx.send(string)
+
 
 if __name__ == "__main__":
     bot.run(DISCORD_TOKEN)

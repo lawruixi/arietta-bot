@@ -4,3 +4,4 @@ token.py
 *.m4a
 *.webm
 errors/*
+test.py
