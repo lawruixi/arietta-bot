@@ -648,6 +648,7 @@ async def changelog(ctx):
 
     **Bug Fixes**
     `stop` now actually works. woaaa!
+    I can now `play` playlists~~~!
     
     **Commands:**
     `join`
