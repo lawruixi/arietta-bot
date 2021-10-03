@@ -234,7 +234,7 @@ class VoiceState:
         self._volume = value
 
     @property
-    def is_playing(self):
+    def is_playing(self): #In voice channel and there is currently a song playing.
         return self.voice and self.current
 
     async def audio_player_task(self):
@@ -273,9 +273,13 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
+        print("AAA")
         self.songs.clear()
+        print("BBB")
 
+        print("CCC")
         if self.voice:
+            print("DDD")
             await self.voice.disconnect()
             self.voice = None
 
@@ -426,7 +430,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.songs.clear()
 
-        if not ctx.voice_state.is_playing:
+        if ctx.voice_state.is_playing:
             ctx.voice_state.voice.stop()
             await ctx.message.add_reaction('✅')
 
@@ -594,6 +598,28 @@ async def ping(ctx):
 @bot.command(name='pong', help="ping!")
 async def ping(ctx):
     await ctx.send("ping!");
+
+@bot.command(name='changelog')
+async def changelog(ctx):
+    changelog="""
+    hoi!! im version 0.1.0 now :D
+
+    **Bug Fixes**
+    `stop` now actually works. woaaa!
+    
+    **Commands:**
+    `join`
+    `leave`
+    `play`
+    `stop`
+    `skip`
+    `queue`
+    `ping`
+    `pong`
+    `changelog`
+    """
+    embed = discord.Embed(title="Changelog", description = changelog, color = EMBED_COLOUR)
+    await ctx.send(embed=embed)
 
 #TODO: Not show up in help
 @bot.command(name='debug')
