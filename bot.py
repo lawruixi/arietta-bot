@@ -524,6 +524,7 @@ class Music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
+        print(search);
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
@@ -616,6 +617,11 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    debug_mode = check_debug_mode();
+    if debug_mode and message.author.id != 498808695170269184:
+        print("In debug mode...")
+        return
+
     await bot.process_commands(message);
 
     if bot.user.mentioned_in(message):
@@ -679,6 +685,9 @@ async def debug(ctx, password, *args):
     string = eval(expr)
     await ctx.send(string)
 
+def check_debug_mode():
+    debug_mode = os.getenv("debug_mode");
+    return debug_mode;
 
 if __name__ == "__main__":
     bot.run(DISCORD_TOKEN)
