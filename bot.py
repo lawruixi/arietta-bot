@@ -204,6 +204,11 @@ class SongQueue(asyncio.Queue):
     def remove(self, index: int):
         del self._queue[index]
 
+    def remove_n(self, indices: list):
+        indices.sort(reverse = True);
+        for i in indices:
+            self.remove(i);
+
 class VoiceState:
     def __init__(self, bot: commands.Bot, ctx: commands.Context):
         self.bot = bot
@@ -439,14 +444,18 @@ class Music(commands.Cog):
             await ctx.message.add_reaction('✅')
 
     @commands.command(name='skip', help="Skips the song!")
-    async def _skip(self, ctx: commands.Context):
-        """Vote to skip a song. The requester can automatically skip.
-        3 skip votes are needed for the song to be skipped.
+    async def _skip(self, ctx: commands.Context, *, skip = 1):
+        """Vote to skip a song. Can skip multiple songs.
         """
 
         if not ctx.voice_state.is_playing:
             return await ctx.send("I'm not playing any music right now...")
+        if(skip > 1):
+            # remove (skip - 1) number of songs from front of queue, then skip current song. this prevents playing any of the skipping songs for like 1ms before skipping.
+            indices = [i for i in range(skip - 1)]
+            ctx.voice_state.songs.remove_n(indices)
         ctx.voice_state.skip()
+        await ctx.message.add_reaction('✅')
 
     @commands.command(name='queue', aliases=['q'], help="Displays the queue! :O")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -466,15 +475,16 @@ class Music(commands.Cog):
         indices = '';
         titles = '';
         durations = '';
+
         for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
             # queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
-            indices += "{0}\n".format(i);
+            indices += "`{0}`\n".format(i + 1);
             #TODO: Fix formatting hotfix for long titles?
             truncated_title = "{0.source.title}".format(song)[:50]
             if(len(truncated_title) < len(song.source.title)): truncated_title += "..."
 
             titles += "[**{0}**]({1.source.url})\n".format(truncated_title, song)
-            durations += "{0}\n".format(song.source.duration_hms);
+            durations += "`{0}`\n".format(song.source.duration_hms);
 
         embed = discord.Embed(title="Queue:", description = "{0} tracks in queue!".format(len(ctx.voice_state.songs)), color=EMBED_COLOUR);
         embed.add_field(name="Index", value = indices, inline=True)
