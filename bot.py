@@ -517,14 +517,18 @@ class Music(commands.Cog):
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='play', aliases=['p'], help='Let me play some songs for you! :OOO')
-    async def _play(self, ctx: commands.Context, *, search: str):
+    # async def _play(self, ctx: commands.Context, *, search: str):
+    async def _play(self, ctx: commands.Context, *args):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
-        print(search);
+        search = " ".join(args)
+        if search.strip() == "":
+            await ctx.send("Tell me what to play :O\n\ntry this :D\n`^play https://www.youtube.com/watch?v=dQw4w9WgXcQ`\n`^play Epic Music`")
+            return
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
@@ -619,7 +623,6 @@ async def on_ready():
 async def on_message(message):
     debug_mode = check_debug_mode();
     if debug_mode and message.author.id != 498808695170269184:
-        print("In debug mode...")
         return
 
     await bot.process_commands(message);
