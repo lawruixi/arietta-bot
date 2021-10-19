@@ -466,6 +466,12 @@ class Music(commands.Cog):
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send("The queue's empty D:")
 
+        current_song = ctx.voice_state.current
+        current_name = truncate_string(current_song.source.title);
+        # Display with the URL:
+        current_title = "[**{0}**]({1.source.url})".format(current_name, current_song)
+        current_duration = current_song.source.duration_hms;
+
         items_per_page = 10
         pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
 
@@ -480,13 +486,16 @@ class Music(commands.Cog):
             # queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
             indices += "`{0}`\n".format(i + 1);
             #TODO: Fix formatting hotfix for long titles?
-            truncated_title = "{0.source.title}".format(song)[:50]
-            if(len(truncated_title) < len(song.source.title)): truncated_title += "..."
+            truncated_title = truncate_string("{0.source.title}".format(song))
 
             titles += "[**{0}**]({1.source.url})\n".format(truncated_title, song)
             durations += "`{0}`\n".format(song.source.duration_hms);
 
-        embed = discord.Embed(title="Queue:", description = "{0} tracks in queue!".format(len(ctx.voice_state.songs)), color=EMBED_COLOUR);
+        embed = discord.Embed(title="Queue:", description = "{0} tracks in queue!\n\n**Now Playing:**".format(len(ctx.voice_state.songs)), color=EMBED_COLOUR);
+        embed.add_field(name="*", value="`0`", inline = True)
+        embed.add_field(name="Name", value=current_title, inline = True)
+        embed.add_field(name="Duration", value="`{0}`".format(current_duration), inline = True)
+
         embed.add_field(name="Index", value = indices, inline=True)
         embed.add_field(name="Name", value = titles, inline=True)
         embed.add_field(name="Duration", value = durations, inline=True)
@@ -564,8 +573,8 @@ class Music(commands.Cog):
 
                     #TODO: Thumbnail of first song?
                     embed = discord.Embed(title = "Added playlist to queue! :D", description="```{0}```".format(data['title']), color = EMBED_COLOUR)
-                    embed.add_field(name="Songs", value="{0}".format(enqueued), inline=True);
-                    embed.add_field(name="Duration", value="{0}".format(YTDLSource.parse_duration(int(total_time))))
+                    embed.add_field(name="Songs", value="`{0}`".format(enqueued), inline=True);
+                    embed.add_field(name="Duration", value="`{0}`".format(YTDLSource.parse_duration(int(total_time))))
                     embed.add_field(name="Requester", value="{0}".format(ctx.author.mention))
                     await ctx.send(embed=embed) 
                     return;
@@ -582,15 +591,15 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
 
                 if len(ctx.voice_state.songs) > 1 or not ctx.voice_state.current is None: #Not the only song playing
-                    title = "Added song to queue! :D"
+                    title = "Added to queue! :D"
 
                     duration_hms = source.duration_hms;
                     position = len(ctx.voice_state.songs)
 
                     embed=discord.Embed(title=title, color=EMBED_COLOUR)
-                    embed.add_field(name="Position", value="{0}".format(position), inline = True);
+                    embed.add_field(name="Position", value="`{0}`".format(position), inline = True);
                     embed.add_field(name="Name", value="{0}".format(source.title), inline = True);
-                    embed.add_field(name="Duration", value="{0}".format(duration_hms), inline = True);
+                    embed.add_field(name="Duration", value="`{0}`".format(duration_hms), inline = True);
                     await ctx.send(embed=embed)
 
 
@@ -701,6 +710,12 @@ async def debug(ctx, password, *args):
 def check_debug_mode():
     debug_mode = os.getenv("debug_mode");
     return debug_mode;
+
+def truncate_string(string):
+    # Truncates string, adding ellipsis behind if it exceeds 50 characters.
+    if len(string) > 50:
+        string = string[:50] + "..."
+    return string;
 
 if __name__ == "__main__":
     bot.run(DISCORD_TOKEN)
