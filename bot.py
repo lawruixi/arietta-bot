@@ -655,6 +655,7 @@ async def on_message(message):
     debug_mode = check_debug_mode();
     if debug_mode and message.author.id != 498808695170269184:
         return
+    print("Hello World")
 
     await bot.process_commands(message);
 
@@ -684,11 +685,12 @@ async def ping(ctx):
 @bot.command(name='changelog')
 async def changelog(ctx):
     changelog = """
-    hoi!! im version 0.2.0 now :D 
+    hoi!! im version 0.2.1 now :D 
 
     **Bug Fixes**
     - `play` no longer throws an exception when no song is specified.
     - `loop` works! also, no longer crashes the entire queue requiring a leave and rejoin lol
+    - `debug_mode` works perfectly now. Thank you, Python jank.
 
     **QOL**
     - formatting has been enhanced all around :D
@@ -718,8 +720,8 @@ async def debug(ctx, password, *args):
     await ctx.send(string)
 
 def check_debug_mode():
-    debug_mode = os.getenv("debug_mode");
-    return debug_mode;
+    debug_mode = os.getenv("debug_mode"); # This is a string for some weird inexplicable reason
+    return debug_mode == "True"; # This weird line of code converts it to a boolean
 
 def truncate_string(string):
     # Truncates string, adding ellipsis behind if it exceeds 50 characters.
