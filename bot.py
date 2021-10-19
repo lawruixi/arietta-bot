@@ -463,8 +463,11 @@ class Music(commands.Cog):
         You can optionally specify the page to show. Each page contains 10 elements.
         """
 
-        if len(ctx.voice_state.songs) == 0:
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send("The queue's empty D:")
+        # If there are no songs in the queue, but there is a song currently playing:
+        elif len(ctx.voice_state.songs) == 0:
+            return await ctx.invoke(self.bot.get_command("now")); 
 
         current_song = ctx.voice_state.current
         current_name = truncate_string(current_song.source.title);
