@@ -5,3 +5,4 @@ token.py
 *.webm
 errors/*
 test.py
+changelog.txt
