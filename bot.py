@@ -683,23 +683,21 @@ async def ping(ctx):
 
 @bot.command(name='changelog')
 async def changelog(ctx):
-    changelog="""
-    hoi!! im version 0.1.0 now :D
+    changelog = """
+    hoi!! im version 0.2.0 now :D 
 
     **Bug Fixes**
-    `stop` now actually works. woaaa!
-    I can now `play` playlists~~~!
-    
-    **Commands:**
-    `join`
-    `leave`
-    `play`
-    `stop`
-    `skip`
-    `queue`
-    `ping`
-    `pong`
-    `changelog`
+    - `play` no longer throws an exception when no song is specified.
+    - `loop` works! also, no longer crashes the entire queue requiring a leave and rejoin lol
+
+    **QOL**
+    - formatting has been enhanced all around :D
+    - `skip` now skips multiple songs!
+    - `np` now shows the currently playing song!
+    - updated the changelog!
+
+    **Upcoming**
+    - `loopqueue`...?
     """
     embed = discord.Embed(title="Changelog", description = changelog, color = EMBED_COLOUR)
     await ctx.send(embed=embed)
