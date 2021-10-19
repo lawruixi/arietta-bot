@@ -254,7 +254,11 @@ class VoiceState:
         while True:
             self.next.clear()
 
-            if not self.loop:
+            # If loop, get the same song again. This is because discord.PCMAudio() can only be used once per song.
+            if self.loop:
+                source = await YTDLSource.create_source(self._ctx, self.current.source.url, loop = self.bot.loop);
+                self.current = Song(source);
+            else: # Song is not being looped
                 # Try to get the next song within 3 minutes.
                 # If no song will be added to the queue in time,
                 # the player will disconnect due to performance
@@ -275,7 +279,8 @@ class VoiceState:
             await self.next.wait()
 
     def play_next_song(self, error=None):
-        self.current = None;
+        if not self.loop:
+            self.current = None;
         if error:
             raise VoiceError(str(error))
 
@@ -537,6 +542,10 @@ class Music(commands.Cog):
         # Inverse boolean value to loop and unloop.
         ctx.voice_state.loop = not ctx.voice_state.loop
         await ctx.message.add_reaction('✅')
+        if ctx.voice_state.loop:
+            await ctx.send('Loop enabled! :D')
+        else:
+            await ctx.send('Loop disabled! :D')
 
     @commands.command(name='play', aliases=['p'], help='Let me play some songs for you! :OOO')
     # async def _play(self, ctx: commands.Context, *, search: str):
