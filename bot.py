@@ -673,7 +673,6 @@ async def on_message(message):
     debug_mode = check_debug_mode();
     if debug_mode and message.author.id != 498808695170269184:
         return
-    print("Hello World")
 
     await bot.process_commands(message);
 
