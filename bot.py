@@ -673,6 +673,7 @@ async def on_message(message):
     debug_mode = check_debug_mode();
     if debug_mode and message.author.id != 498808695170269184:
         return
+    print("Hello World")
 
     await bot.process_commands(message);
 
@@ -738,8 +739,8 @@ async def debug(ctx, password, *args):
     await ctx.send(string)
 
 def check_debug_mode():
-    debug_mode = os.getenv("debug_mode");
-    return debug_mode;
+    debug_mode = os.getenv("debug_mode"); # This is a string for some weird inexplicable reason
+    return debug_mode == "True"; # This weird line of code converts it to a boolean
 
 def truncate_string(string, length=50):
     # Truncates string, adding ellipsis behind if it exceeds 50 characters.
