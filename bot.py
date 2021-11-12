@@ -702,20 +702,22 @@ async def ping(ctx):
 @bot.command(name='changelog')
 async def changelog(ctx):
     changelog = """
-    hoi!! im version 0.2.0 now :D 
+    hoi!! im version 0.2.1 now :D 
+    mini update today because im learning how to play games :0
+    also my developer is busy and taking a break from other work
 
     **Bug Fixes**
-    - `play` no longer throws an exception when no song is specified.
-    - `loop` works! also, no longer crashes the entire queue requiring a leave and rejoin lol
+    - `pause` and `resume` now work properly
+    - `now` should be more accurate in tracking time
 
     **QOL**
-    - formatting has been enhanced all around :D
-    - `skip` now skips multiple songs!
-    - `np` now shows the currently playing song!
-    - updated the changelog!
+    - more formatting enhancements :D
+    - `loop`ed songs are now indicated
+    - updated changelog
 
     **Upcoming**
     - `loopqueue`...?
+    - games...?
     """
     embed = discord.Embed(title="Changelog", description = changelog, color = EMBED_COLOUR)
     await ctx.send(embed=embed)
