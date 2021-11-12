@@ -174,7 +174,7 @@ class Song:
         embed = (discord.Embed(title='Now playing',
                                description='```css\n{0.source.title}\n```'.format(self),
                                color=EMBED_COLOUR)
-                 .add_field(name='Duration', value=self.source.duration_hms)
+                 .add_field(name='Duration', value='`{0}`'.format(self.source.duration_hms))
                  .add_field(name='Requested by', value=self.requester.mention)
                  .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
                  .set_thumbnail(url=self.source.thumbnail))
@@ -422,7 +422,7 @@ class Music(commands.Cog):
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             #Set current progress
             ctx.voice_state.current_progress = time.time() - ctx.voice_state.start_time;
             ctx.voice_state.voice.pause()
@@ -432,7 +432,7 @@ class Music(commands.Cog):
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
             #Set start_time
             ctx.voice_state.start_time = time.time()
             ctx.voice_state.voice.resume()
