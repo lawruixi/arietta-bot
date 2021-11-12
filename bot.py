@@ -472,10 +472,27 @@ class Music(commands.Cog):
             return await ctx.send("The queue's empty D:")
         # If there are no songs in the queue, but there is a song currently playing:
         elif len(ctx.voice_state.songs) == 0:
-            return await ctx.invoke(self.bot.get_command("now")); 
+            current_song = ctx.voice_state.current
+            if(ctx.voice_state.loop):
+                current_name = truncate_string(":repeat:  " + current_song.source.title, 56);
+            else:
+                current_name = truncate_string(current_song.source.title);
+
+            # Display with the URL:
+            current_title = "[**{0}**]({1.source.url})".format(current_name, current_song)
+            current_duration = current_song.source.duration_hms;
+
+            embed = discord.Embed(title="Queue:", description = "**Now Playing:**", color=EMBED_COLOUR);
+            embed.add_field(name="*", value="`0`", inline = True)
+            embed.add_field(name="Name", value=current_title, inline = True)
+            embed.add_field(name="Duration", value="`{0}`".format(current_duration), inline = True)
+            return await ctx.send(embed=embed)
 
         current_song = ctx.voice_state.current
-        current_name = truncate_string(current_song.source.title);
+        if(ctx.voice_state.loop):
+            current_name = truncate_string(":repeat:  " + current_song.source.title, 56);
+        else:
+            current_name = truncate_string(current_song.source.title);
         # Display with the URL:
         current_title = "[**{0}**]({1.source.url})".format(current_name, current_song)
         current_duration = current_song.source.duration_hms;
@@ -721,10 +738,10 @@ def check_debug_mode():
     debug_mode = os.getenv("debug_mode");
     return debug_mode;
 
-def truncate_string(string):
+def truncate_string(string, length=50):
     # Truncates string, adding ellipsis behind if it exceeds 50 characters.
-    if len(string) > 50:
-        string = string[:50] + "..."
+    if len(string) > length:
+        string = string[:length] + "..."
     return string;
 
 if __name__ == "__main__":
