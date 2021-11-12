@@ -272,6 +272,7 @@ class VoiceState:
 
 
             self.start_time = time.time();
+            self.current_progress = 0;
             self.current.source.volume = self._volume
             self.voice.play(self.current.source, after=self.play_next_song)
             await self.current.source.channel.send(embed=self.current.create_embed())
@@ -387,7 +388,7 @@ class Music(commands.Cog):
         duration = ctx.voice_state.current.source.duration 
         
         #Get progress; if paused, it should just be the current progress. Otherwise, add the unpaused time as well.
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
             progress = int(ctx.voice_state.current_progress);
         else:
             progress = int(time.time() - ctx.voice_state.start_time + ctx.voice_state.current_progress);
@@ -424,7 +425,7 @@ class Music(commands.Cog):
 
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             #Set current progress
-            ctx.voice_state.current_progress = time.time() - ctx.voice_state.start_time;
+            ctx.voice_state.current_progress += time.time() - ctx.voice_state.start_time;
             ctx.voice_state.voice.pause()
             await ctx.message.add_reaction('✅')
 
