@@ -24,6 +24,7 @@ DISCORD_TOKEN = os.getenv("discord_token")
 intents = discord.Intents().all()
 client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='^',intents=intents)
+bot.remove_command('help')
 
 EMBED_COLOUR = 0xF875A2
 ERROR_DIRECTORY = "errors/"
@@ -329,7 +330,7 @@ class Music(commands.Cog):
         error_file = get_error_file(error)
         await ctx.send("I'm sorry! An error occurred! ;-;", file=error_file)
 
-    @commands.command(name='join', invoke_without_subcommand=True, help='Call me if you\'re lonely! :)))))')
+    @commands.command(name='join', invoke_without_subcommand=True, brief='Call me if you\'re lonely! :)))))', help="Summons me to your channel! :)))))\n`^join`")
     async def _join(self, ctx: commands.Context):
         """Joins a voice channel."""
 
@@ -340,7 +341,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.command(name='summon')
+    @commands.command(name='summon', brief="Calls me from any voice channel to yours :D", help="Summons me to your channel! I'll leave any existing channels and pop right over!\n`^summon`")
     async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
@@ -356,7 +357,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.command(name='leave', aliases=['disconnect'], help='Tell me if you want me to go...')
+    @commands.command(name='leave', aliases=['disconnect'], brief='Tell me if you want me to go...', help="I'll leave your channel... \n`^leave`")
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
 
@@ -366,7 +367,7 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
 
-    @commands.command(name='volume')
+    @commands.command(name='volume', brief="Adjusts volume! :O", help="Adjusts volume of currently playing song! [Currently not available.] \n`^volume 50`")
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """Sets the volume of the player."""
 
@@ -379,7 +380,7 @@ class Music(commands.Cog):
         ctx.voice_state.volume = volume / 100
         await ctx.send('Playing at {} volume! :>'.format(volume))
 
-    @commands.command(name='now', aliases=['current', 'playing', 'np'], help='What\'s playing now? :O')
+    @commands.command(name='now', aliases=['current', 'playing', 'np'], brief='What\'s playing now? :O', help="Shows details of what I'm playing!\n`^now`")
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
         if(ctx.voice_state.current is None):
@@ -419,7 +420,7 @@ class Music(commands.Cog):
 
         # await ctx.send(embed=ctx.voice_state.current.create_embed())
 
-    @commands.command(name='pause', help='Pauses the song!')
+    @commands.command(name='pause', brief='Pauses the song!', help="Pauses the song!\n`^pause`")
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
@@ -429,7 +430,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.pause()
             await ctx.message.add_reaction('✅')
 
-    @commands.command(name='resume', help="Resumes the song!")
+    @commands.command(name='resume', brief="Resumes the song!", help="Resumes the song!\n`^resume`")
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
@@ -439,7 +440,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.resume()
             await ctx.message.add_reaction('✅')
 
-    @commands.command(name='stop', help="Stops all songs!")
+    @commands.command(name='stop', brief="Stops all songs!", help="Stops all songs and clears the queue!\n`^stop`")
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
 
@@ -449,7 +450,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.stop()
             await ctx.message.add_reaction('✅')
 
-    @commands.command(name='skip', help="Skips the song!")
+    @commands.command(name='skip', brief="Skips the song!", help="Skips the song!\n`^skip`")
     async def _skip(self, ctx: commands.Context, *, skip = 1):
         """Vote to skip a song. Can skip multiple songs.
         """
@@ -463,7 +464,7 @@ class Music(commands.Cog):
         ctx.voice_state.skip()
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='queue', aliases=['q'], help="Displays the queue! :O")
+    @commands.command(name='queue', aliases=['q'], brief="Displays the queue! :O", help="Shows the currently playing song, and up to ten songs in the queue! You can show different pages too~~ \n`^queue 4`")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
@@ -528,7 +529,7 @@ class Music(commands.Cog):
         embed.set_footer(text="Viewing page {}/{}".format(page, pages))
         await ctx.send(embed=embed)
 
-    @commands.command(name='shuffle')
+    @commands.command(name='shuffle', brief="Let me mix it up for you :D", help="Shuffles the queue randomly!\n`^shuffle`")
     async def _shuffle(self, ctx: commands.Context):
         """Shuffles the queue."""
 
@@ -538,7 +539,7 @@ class Music(commands.Cog):
         ctx.voice_state.songs.shuffle()
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='remove')
+    @commands.command(name='remove', brief="Removes a song!", help="Deletes a song from a specified index in the queue! The currently playing song is not counted.\n`^remove 7`")
     async def _remove(self, ctx: commands.Context, index: int):
         """Removes a song from the queue at a given index."""
 
@@ -548,7 +549,7 @@ class Music(commands.Cog):
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='loop')
+    @commands.command(name='loop', brief="Loops the song!", help="Toggles looping for the currently playing song!\n`^loop`")
     async def _loop(self, ctx: commands.Context):
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
@@ -565,7 +566,7 @@ class Music(commands.Cog):
         else:
             await ctx.send('Loop disabled! :D')
 
-    @commands.command(name='play', aliases=['p'], help='Let me play some songs for you! :OOO')
+    @commands.command(name='play', aliases=['p'], brief='Let me play some songs for you! :OOO', help="Plays a song! Accepts links and search queries! \n`^play https://www.youtube.com/watch?v=dQw4w9WgXcQ`")
     # async def _play(self, ctx: commands.Context, *, search: str):
     async def _play(self, ctx: commands.Context, *args):
         """Plays a song.
@@ -662,7 +663,6 @@ class Music(commands.Cog):
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError("I'm already in a voice channel!")
 
-bot.add_cog(Music(bot))
 
 @bot.event
 async def on_ready():
@@ -682,47 +682,66 @@ async def on_message(message):
         if("<3" in message.content.lower()):
             await message.channel.send("<3")
 
-@bot.command(name='introduce', help="Hoi! :D")
-async def introduce(ctx):
-    embed=discord.Embed(title="Hello, I'm Arietta!", description="I'm here to play music for you! Have fun and enjoy! :D\nMy command prefix is the caret (^) symbol btw :P", color=EMBED_COLOUR)
-    await ctx.send(embed=embed)
 
-@bot.command(pass_context=True)
-async def intro(ctx):
-    await introduce.invoke(ctx);
+class General(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
 
-@bot.command(name='ping', help="pong!")
-async def ping(ctx):
-    await ctx.send("pong!");
+    @commands.command(name='introduce', aliases=['intro'], brief='Hoi! :D', help="Introduces me!\n`^introduce`")
+    async def _introduce(self, ctx: commands.Context):
+        embed=discord.Embed(title="Hello, I'm Arietta!", description="I'm here to play music for you! Have fun and enjoy! :D\nMy command prefix is the caret (^) symbol btw :P", color=EMBED_COLOUR)
+        await ctx.send(embed=embed)
 
-@bot.command(name='pong', help="ping!")
-async def ping(ctx):
-    await ctx.send("ping!");
+    @commands.command(name='ping', brief="pong!", help="pong!")
+    async def _ping(self, ctx):
+        await ctx.send("pong!");
 
-@bot.command(name='changelog')
-async def changelog(ctx):
-    changelog = """
-    hoi!! im version 0.2.1 now :D 
-    mini update today because im learning how to play games :0
-    also my developer is busy and taking a break from other work
+    @commands.command(name='pong', brief="ping!", help="ping!")
+    async def _pong(self, ctx):
+        await ctx.send("ping!");
 
-    **Bug Fixes**
-    - `pause` and `resume` now work properly
-    - `now` should be more accurate in tracking time
+    @commands.command(name='changelog', brief="changelog", help="Displays the changelog of this current version!\n`^changelog`")
+    async def _changelog(self, ctx):
+        changelog = """
+        hoi!! im version 0.2.2 now :D 
+        mini update because my developer is bored and has nothing better to do
 
-    **QOL**
-    - more formatting enhancements :D
-    - `loop`ed songs are now indicated
-    - updated changelog
+        **QOL**
+        Help looks better now
 
-    **Upcoming**
-    - `loopqueue`...?
-    - games...?
-    """
-    embed = discord.Embed(title="Changelog", description = changelog, color = EMBED_COLOUR)
-    await ctx.send(embed=embed)
+        **Upcoming**
+        - `loopqueue`...?
+        - games...?
+        """
+        embed = discord.Embed(title="Changelog", description = changelog, color = EMBED_COLOUR)
+        await ctx.send(embed=embed)
 
-#TODO: Not show up in help
+    @commands.command(name='help', brief='help', help="help")
+    async def _help(self, ctx, *args):
+        if(len(args) == 0):
+            description = """
+            Hoi! Here's the list of commands you can use :D
+            """
+            for cog_name, cog in bot.cogs.items():
+                description += "\n**{0}**\n".format(cog_name);
+                for command in cog.walk_commands():
+                    description += "`^{0}`: {1}\n".format(command.name, command.brief)
+            embed = discord.Embed(title="Help", description = description, color = EMBED_COLOUR)
+            await ctx.send(embed=embed)
+
+        else:
+            command = args[0]
+            for i in bot.commands:
+                if i.name == command:
+                    description = "**`^{0}`**\n{1}".format(command, i.help);
+                    embed = discord.Embed(title="Help", description = description, color = EMBED_COLOUR)
+                    await ctx.send(embed=embed)
+                    return;
+
+            await ctx.send("I don't have such a command... D:")
+        
+
+#Note: As long as command is not in a Cog, it will not show up in `help`.
 @bot.command(name='debug')
 async def debug(ctx, password, *args):
     if ctx.message.author.id != 498808695170269184:
@@ -748,5 +767,7 @@ def truncate_string(string, length=50):
     return string;
 
 if __name__ == "__main__":
+    bot.add_cog(Music(bot))
+    bot.add_cog(General(bot))
     bot.run(DISCORD_TOKEN)
 
